@@ -25,13 +25,15 @@
     <script>
       var map;
       var kmzLayer;
+      var fusionLayer;
 
       var dataIndex = 0;
 
       var backGround;
       
-      function next(){ nextLayer(); }
-      function toggleExpertMode(){ toggleBackgroundVisibility(); }
+      //function next(){ nextLayer(); }
+      function next(){ nextFusionTable(); }
+      function toggleExpertMode(){ hideMap(); }
 
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -40,9 +42,84 @@
         });
         map.setMapTypeId( google.maps.MapTypeId.SATELLITE );
         
-        initWithLayers();
+
+
+        initEncodedPolygon();
       }
       
+      function initEncodedPolygon()
+      {
+        var data ="PJLJKJJMIKLHKLJJLKKKLIKIKKNJJJJLKMIIJJKNJJMKKLKPKLJLJIMIKILMIIOJKJLJJMKKHNKKLFNKLMJKMJJLJLJJLILFOGMIP<br>chqxHoiqSdbKfi@foLouMee@grOakFoB|cDals@dxGirAfDwm\qhUajq@mgD{|At|HenK}dK~eJq`@wQtcBa|`@sjBoyCocG|_G}xFw|Ao`Dc|Yt}Izm@cDwiXquMk`R|`AeaJx_EauBz~EbpDxbA`qEfrAkw]}sO}vR|aIciKfwFbiDb~Ms_Lf_AahQb_HuGqqBawi@p|XqtlArsIhhIjbMjgD~{IrjIrcBmbFnaLjvMrhW{{AtIgo{@nzFi}Bwm@gqNllRaiKt@u~Qb}SrfLbpKui_@``WyrEf{Qjik@j{SjbG{fGpzC{ZjxWtv^vh^vnHdfAnaLraNdxG{iCxoIth@f_HylMzzOijN|qTxpJzzC~bJup@leN`uD|il@acSvuHkfCttUkuDskCgpF`nIfq@xpJwfNxgVulDfym@obVcoCeiKvtNkzRm~HewMwwCt~C~eVp~XhkObhJn`i@ijGnsw@i^pqBaoQk|McaJxhP}{WshNgrH~mWiiFb|~@pnFrnF{kEhlIabRbRujIr_LlIv{l@ijGd`P_|IuGcw[hePscIvtNpxBbeNb_NldYulJzhVgoLbx\seK|hBgyf@tyL}n_@o~rA{`Vs|lA<br>";
+        parseBorder(data);
+        return;
+
+        var dataUrl = "http://www.ullebambulle.de/quiz/data/data/geo_world/Belgium";
+        new Ajax.Request( dataUrl, { method:'get', 
+			    onSuccess:  function(transport ) { parseBorder( transport.responseText ); }, 
+			    onFailure: geoFail } );
+      }
+
+      function parseBorder( data )
+      {
+        var encodedData = "chqxHoiqSdbKfi@foLouMee@grOakFoB|cDals@dxGirAfDwm\\qhUajq@mgD{|At|HenK}dK~eJq`@wQtcBa|`@sjBoyCocG|_G}xFw|Ao`Dc|Yt}Izm@cDwiXquMk`R|`AeaJx_EauBz~EbpDxbA`qEfrAkw]}sO}vR|aIciKfwFbiDb~Ms_Lf_AahQb_HuGqqBawi@p|XqtlArsIhhIjbMjgD~{IrjIrcBmbFnaLjvMrhW{{AtIgo{@nzFi}Bwm@gqNllRaiKt@u~Qb}SrfLbpKui_@``WyrEf{Qjik@j{SjbG{fGpzC{ZjxWtv^vh^vnHdfAnaLraNdxG{iCxoIth@f_HylMzzOijN|qTxpJzzC~bJup@leN`uD|il@acSvuHkfCttUkuDskCgpF`nIfq@xpJwfNxgVulDfym@obVcoCeiKvtNkzRm~HewMwwCt~C~eVp~XhkObhJn`i@ijGnsw@i^pqBaoQk|McaJxhP}{WshNgrH~mWiiFb|~@pnFrnF{kEhlIabRbRujIr_LlIv{l@ijGd`P_|IuGcw[hePscIvtNpxBbeNb_NldYulJzhVgoLbx\\seK|hBgyf@tyL}n_@o~rA{`Vs|lA";
+        var encodedLevels = "PJLJKJJMIKLHKLJJLKKKLIKIKKNJJJJLKMIIJJKNJJMKKLKPKLJLJIMIKILMIIOJKJLJJMKKHNKKLFNKLMJKMJJLJLJJLILFOGMIP";
+
+         var decodedPath = google.maps.geometry.encoding.decodePath(encodedData);
+         var decodedLevels = decodeLevels(encodedLevels);
+
+         //var setRegion = new google.maps.Polyline({
+         var setRegion = new google.maps.Polygon({
+            path: decodedPath,
+            levels: decodedLevels,
+            strokeColor: '#ff0000',
+            strokeOpacity: 1,
+            strokeWeight: 2,
+            fillColor: '#ff0000',
+            fillOpacity: 1,
+            zIndex : 10,
+            map: map
+        });
+      }
+
+      // Decode an encoded levels string into an array of levels.
+      function decodeLevels(encodedLevelsString) {
+        var decodedLevels = [];
+
+        for (var i = 0; i < encodedLevelsString.length; ++i) {
+          var level = encodedLevelsString.charCodeAt(i) - 63;
+          decodedLevels.push(level);
+        }
+
+        return decodedLevels;
+      }
+      
+      function initWithFusionTable()
+      {
+        nextFusionTable();
+      }
+
+      function nextFusionTable()
+      {
+        var data = ["US", "GB", "DE"];
+        dataIndex = (dataIndex+1) % data.length;
+
+        if(fusionLayer != null)
+        {
+          fusionLayer.setMap(null);
+        }
+
+        fusionLayer = new google.maps.FusionTablesLayer({
+          query: {
+            select: 'geometry',
+            from: '1N2LBk4JHwWpOY4d9fobIn27lfnZ5MDy-NoqqRpk',
+            where: "ISO_2DIGIT IN ('" + data[dataIndex] + "')"
+          },
+          suppressInfoWindows: true
+        });
+        fusionLayer.setMap(map);
+
+      }
+
       function initWithLayers()
       {
           createLayerBackground();
@@ -133,6 +210,6 @@
       }
     </script>
     <!--script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script-->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB0XT6gckJ0COXf2jbgPwrOhXC9S_eLvI8&callback&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB0XT6gckJ0COXf2jbgPwrOhXC9S_eLvI8&callback&callback=initMap&libraries=geometry" async defer></script>
   </body>
 </html>
