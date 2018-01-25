@@ -20,20 +20,14 @@
   </head>
   <body>
     <input type="button" value="Neues Land" onclick="next()">
-    <input type="button" value="Experten" onclick="toggleExpertMode()">
+    <input type="button" value="Experten" onclick="toggleBackgroundPolygon()">
     <div id="map"></div>
     <script>
-      var map;
-      var kmzLayer;
-      var fusionLayer;
-
-      var dataIndex = 0;
-
-      var backGround;
       
-      //function next(){ nextLayer(); }
-      function next(){ nextFusionTable(); }
-      function toggleExpertMode(){ hideMap(); }
+      var map;
+      var dataIndex = 0;
+      var backGround;
+      var visiblePolygons = [];
 
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -41,44 +35,73 @@
           zoom: 6
         });
         map.setMapTypeId( google.maps.MapTypeId.SATELLITE );
-        
-
-
-        initEncodedPolygon();
+        next();
       }
-      
-      function initEncodedPolygon()
+     
+      function next()
       {
-        var data ="PJLJKJJMIKLHKLJJLKKKLIKIKKNJJJJLKMIIJJKNJJMKKLKPKLJLJIMIKILMIIOJKJLJJMKKHNKKLFNKLMJKMJJLJLJJLILFOGMIP<br>chqxHoiqSdbKfi@foLouMee@grOakFoB|cDals@dxGirAfDwm\qhUajq@mgD{|At|HenK}dK~eJq`@wQtcBa|`@sjBoyCocG|_G}xFw|Ao`Dc|Yt}Izm@cDwiXquMk`R|`AeaJx_EauBz~EbpDxbA`qEfrAkw]}sO}vR|aIciKfwFbiDb~Ms_Lf_AahQb_HuGqqBawi@p|XqtlArsIhhIjbMjgD~{IrjIrcBmbFnaLjvMrhW{{AtIgo{@nzFi}Bwm@gqNllRaiKt@u~Qb}SrfLbpKui_@``WyrEf{Qjik@j{SjbG{fGpzC{ZjxWtv^vh^vnHdfAnaLraNdxG{iCxoIth@f_HylMzzOijN|qTxpJzzC~bJup@leN`uD|il@acSvuHkfCttUkuDskCgpF`nIfq@xpJwfNxgVulDfym@obVcoCeiKvtNkzRm~HewMwwCt~C~eVp~XhkObhJn`i@ijGnsw@i^pqBaoQk|McaJxhP}{WshNgrH~mWiiFb|~@pnFrnF{kEhlIabRbRujIr_LlIv{l@ijGd`P_|IuGcw[hePscIvtNpxBbeNb_NldYulJzhVgoLbx\seK|hBgyf@tyL}n_@o~rA{`Vs|lA<br>";
-        parseBorder(data);
-        return;
+        var data = ["Afghanistan", "Australia", "Canada", "Germany", "Russia", "Trinidad and Tobago"];
+        dataIndex = (dataIndex+1) % data.length;
 
-        var dataUrl = "http://www.ullebambulle.de/quiz/data/data/geo_world/Belgium";
-        new Ajax.Request( dataUrl, { method:'get', 
-			    onSuccess:  function(transport ) { parseBorder( transport.responseText ); }, 
-			    onFailure: geoFail } );
+        var dataUrl = 'data/geo_world/' + data[dataIndex];
+        var request = new XMLHttpRequest();
+		    request.addEventListener('load', function(event) {
+		      if (request.status >= 200 && request.status < 300) {
+			      //console.log(request.responseText);
+			      parseBorder(request.responseText);
+		      } else {
+			      console.warn(request.statusText, request.responseText);
+		      }
+		    });
+        request.open("GET", dataUrl, true);
+        request.send();
+
       }
 
       function parseBorder( data )
       {
-        var encodedData = "chqxHoiqSdbKfi@foLouMee@grOakFoB|cDals@dxGirAfDwm\\qhUajq@mgD{|At|HenK}dK~eJq`@wQtcBa|`@sjBoyCocG|_G}xFw|Ao`Dc|Yt}Izm@cDwiXquMk`R|`AeaJx_EauBz~EbpDxbA`qEfrAkw]}sO}vR|aIciKfwFbiDb~Ms_Lf_AahQb_HuGqqBawi@p|XqtlArsIhhIjbMjgD~{IrjIrcBmbFnaLjvMrhW{{AtIgo{@nzFi}Bwm@gqNllRaiKt@u~Qb}SrfLbpKui_@``WyrEf{Qjik@j{SjbG{fGpzC{ZjxWtv^vh^vnHdfAnaLraNdxG{iCxoIth@f_HylMzzOijN|qTxpJzzC~bJup@leN`uD|il@acSvuHkfCttUkuDskCgpF`nIfq@xpJwfNxgVulDfym@obVcoCeiKvtNkzRm~HewMwwCt~C~eVp~XhkObhJn`i@ijGnsw@i^pqBaoQk|McaJxhP}{WshNgrH~mWiiFb|~@pnFrnF{kEhlIabRbRujIr_LlIv{l@ijGd`P_|IuGcw[hePscIvtNpxBbeNb_NldYulJzhVgoLbx\\seK|hBgyf@tyL}n_@o~rA{`Vs|lA";
-        var encodedLevels = "PJLJKJJMIKLHKLJJLKKKLIKIKKNJJJJLKMIIJJKNJJMKKLKPKLJLJIMIKILMIIOJKJLJJMKKHNKKLFNKLMJKMJJLJLJJLILFOGMIP";
+        clearPolygons();
 
-         var decodedPath = google.maps.geometry.encoding.decodePath(encodedData);
-         var decodedLevels = decodeLevels(encodedLevels);
+        var splitted = data.split("<br>");
+        
+        for (i = 0; i < splitted.length / 2; i++)
+        {
+            showPolygon(splitted[2 * i + 1], splitted[2*i]);
+        }
 
-         //var setRegion = new google.maps.Polyline({
-         var setRegion = new google.maps.Polygon({
-            path: decodedPath,
-            levels: decodedLevels,
-            strokeColor: '#ff0000',
-            strokeOpacity: 1,
-            strokeWeight: 2,
-            fillColor: '#ff0000',
-            fillOpacity: 1,
-            zIndex : 10,
-            map: map
-        });
+        ensurePolygonsAreVisible();
+      }
+
+      function clearPolygons()
+      {
+        for (i = 0; i < visiblePolygons.length; i++) {
+          visiblePolygons[i].setMap(null);
+        }
+
+        visiblePolygons = [];
+      }
+
+      function showPolygon(encodedData, encodedLevels)
+      {
+        if(encodedData !== null && encodedData !== '' && encodedLevels !== null && encodedLevels !== '')
+        {
+          var decodedPath = google.maps.geometry.encoding.decodePath(encodedData);
+          var decodedLevels = decodeLevels(encodedLevels);
+
+          var polygon = new google.maps.Polygon({
+              path: decodedPath,
+              levels: decodedLevels,
+              strokeColor: '#ff0000',
+              strokeOpacity: 1,
+              strokeWeight: 2,
+              fillColor: '#ff0000',
+              fillOpacity: 1,
+              zIndex : 10,
+              map: map
+          });
+
+          visiblePolygons.push(polygon);
+        }
       }
 
       // Decode an encoded levels string into an array of levels.
@@ -92,88 +115,54 @@
 
         return decodedLevels;
       }
-      
-      function initWithFusionTable()
+     
+      function ensurePolygonsAreVisible( )
       {
-        nextFusionTable();
+          if ( visiblePolygons.length == 0 )
+            return;	
+
+          var bounds = getBounds(visiblePolygons[ 0 ]);
+
+          for ( i = 1; i < visiblePolygons.length; i++ )
+          {
+            var b =  getBounds(visiblePolygons[ i ]);
+            bounds.extend( b.getSouthWest() );
+            bounds.extend( b.getNorthEast() );
+          }	 
+
+        map.setCenter( bounds.getCenter( ) );
+        //map.setZoom( getZoomByBounds( bounds ) );
       }
 
-      function nextFusionTable()
+      function getBounds(polygon)
       {
-        var data = ["US", "GB", "DE"];
-        dataIndex = (dataIndex+1) % data.length;
+        var bounds = new google.maps.LatLngBounds();
+        polygon.getPath().forEach(function(element,index){bounds.extend(element)});
+        return bounds;
+      }
 
-        if(fusionLayer != null)
-        {
-          fusionLayer.setMap(null);
+      function getZoomByBounds( bounds ){
+        var MAX_ZOOM = map.mapTypes.get( map.getMapTypeId() ).maxZoom || 21 ;
+        var MIN_ZOOM = map.mapTypes.get( map.getMapTypeId() ).minZoom || 0 ;
+
+        var ne= map.getProjection().fromLatLngToPoint( bounds.getNorthEast() );
+        var sw= map.getProjection().fromLatLngToPoint( bounds.getSouthWest() ); 
+
+        var worldCoordWidth = Math.abs(ne.x-sw.x);
+        var worldCoordHeight = Math.abs(ne.y-sw.y);
+
+        //Fit padding in pixels 
+        var FIT_PAD = 40;
+
+        for( var zoom = MAX_ZOOM; zoom >= MIN_ZOOM; --zoom ){ 
+            if( worldCoordWidth*(1<<zoom)+2*FIT_PAD < $(map.getDiv()).width() && 
+                worldCoordHeight*(1<<zoom)+2*FIT_PAD < $(map.getDiv()).height() )
+                return zoom;
         }
-
-        fusionLayer = new google.maps.FusionTablesLayer({
-          query: {
-            select: 'geometry',
-            from: '1N2LBk4JHwWpOY4d9fobIn27lfnZ5MDy-NoqqRpk',
-            where: "ISO_2DIGIT IN ('" + data[dataIndex] + "')"
-          },
-          suppressInfoWindows: true
-        });
-        fusionLayer.setMap(map);
-
+        return 0;
       }
 
-      function initWithLayers()
-      {
-          createLayerBackground();
-          nextLayer();
-      }
-
-      function nextLayer() {
-
-        var data = ["AFG", /*"BRA",*/ "DEU"];
-        dataIndex = (dataIndex+1) % data.length;       
-        var layerUrl = 'https://ullebambulle.de/public/' + data[dataIndex] + '_adm0.kmz'
-
-        if(kmzLayer != null)
-        {
-          kmzLayer.setMap(null);
-        }
-        
-        kmzLayer = new google.maps.KmlLayer(layerUrl);
-        kmzLayer.setMap(map);
-      }
-
-      function createLayerBackground()
-      {
-        var maxLat = 85;
-
-        var backgroundPoints = [
-            {lat: maxLat, lng: 0},
-            {lat: maxLat, lng: 120},
-            {lat: maxLat, lng: 240},
-            {lat: maxLat, lng: 360},
-            {lat: -1 * maxLat, lng: 360},
-            {lat: -1 * maxLat, lng: 240},
-            {lat: -1 * maxLat, lng: 120},
-            {lat: -1 * maxLat, lng: 0},
-            {lat: maxLat, lng: 0}
-          ];
-
-          map.data.add({geometry: new google.maps.Data.Polygon([backgroundPoints])});
-          map.data.setStyle({visible: false, zIndex: -1000, fillColor: 'green', fillOpacity: 1});
-      }
-
-      function toggleBackgroundVisibility()
-      {
-        if(map.data.style.visible)
-        {
-          map.data.setStyle({visible: false, zIndex: -1000, fillColor: 'green', fillOpacity: 1});
-        }
-        else
-        {
-          map.data.setStyle({visible: true, zIndex: -1000, fillColor: 'green', fillOpacity: 1});
-        }
-      }
-
-      function hideMap( )
+      function toggleBackgroundPolygon( )
       {
         var maxLat = 85;
 
@@ -209,7 +198,7 @@
         }
       }
     </script>
-    <!--script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script-->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB0XT6gckJ0COXf2jbgPwrOhXC9S_eLvI8&callback&callback=initMap&libraries=geometry" async defer></script>
+    <!-- key is restricted to ullebambulle.de -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB0XT6gckJ0COXf2jbgPwrOhXC9S_eLvI8&callback=initMap&libraries=geometry" async defer></script>
   </body>
 </html>
