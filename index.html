@@ -95,7 +95,7 @@
               strokeOpacity: 1,
               strokeWeight: 2,
               fillColor: '#ff0000',
-              fillOpacity: 1,
+              fillOpacity: 0.4,
               zIndex : 10,
               map: map
           });
@@ -131,7 +131,7 @@
           }	 
 
         map.setCenter( bounds.getCenter( ) );
-        //map.setZoom( getZoomByBounds( bounds ) );
+        map.fitBounds( bounds );
       }
 
       function getBounds(polygon)
@@ -139,27 +139,6 @@
         var bounds = new google.maps.LatLngBounds();
         polygon.getPath().forEach(function(element,index){bounds.extend(element)});
         return bounds;
-      }
-
-      function getZoomByBounds( bounds ){
-        var MAX_ZOOM = map.mapTypes.get( map.getMapTypeId() ).maxZoom || 21 ;
-        var MIN_ZOOM = map.mapTypes.get( map.getMapTypeId() ).minZoom || 0 ;
-
-        var ne= map.getProjection().fromLatLngToPoint( bounds.getNorthEast() );
-        var sw= map.getProjection().fromLatLngToPoint( bounds.getSouthWest() ); 
-
-        var worldCoordWidth = Math.abs(ne.x-sw.x);
-        var worldCoordHeight = Math.abs(ne.y-sw.y);
-
-        //Fit padding in pixels 
-        var FIT_PAD = 40;
-
-        for( var zoom = MAX_ZOOM; zoom >= MIN_ZOOM; --zoom ){ 
-            if( worldCoordWidth*(1<<zoom)+2*FIT_PAD < $(map.getDiv()).width() && 
-                worldCoordHeight*(1<<zoom)+2*FIT_PAD < $(map.getDiv()).height() )
-                return zoom;
-        }
-        return 0;
       }
 
       function toggleBackgroundPolygon( )
